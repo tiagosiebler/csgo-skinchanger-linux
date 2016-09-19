@@ -25,6 +25,7 @@
 
 /* game interface pointers */
 CHLClient* clientdll = nullptr;
+IVModelInfo* modelinfo = nullptr;
 IVEngineClient* engine = nullptr;
 IClientEntityList* entitylist = nullptr;
 
@@ -93,6 +94,16 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 				/* USP-S | Stainless */
 				case WEAPON_USP_SILENCER:
 					*weapon->GetFallbackPaintKit() = 277; break;
+
+				/* Karambit | Tiger Tooth */
+				case WEAPON_KNIFE:
+					*weapon->GetItemDefinitionIndex() = WEAPON_KNIFE_KARAMBIT;
+					*weapon->GetFallbackPaintKit() = 409; break;
+
+				/* M9 Bayonet | Crimson Web */
+				case WEAPON_KNIFE_T:
+					*weapon->GetItemDefinitionIndex() = WEAPON_KNIFE_M9_BAYONET;
+					*weapon->GetFallbackPaintKit() = 12; break;
 			}
 
 			/* write to weapon name tag */
@@ -110,6 +121,24 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 			*weapon->GetItemIDHigh() = -1;
 		}
 
+		/* viewmodel replacements */
+		C_BaseViewModel* viewmodel = reinterpret_cast<C_BaseViewModel*>(entitylist->GetClientEntity(localplayer->GetViewModel() & 0xFFF));
+
+		if (!viewmodel)
+			break;
+
+		C_BaseCombatWeapon* active_weapon = reinterpret_cast<C_BaseCombatWeapon*>(entitylist->GetClientEntity(viewmodel->GetWeapon() & 0xFFF));
+
+		if (!active_weapon)
+			break;
+
+		switch (*active_weapon->GetItemDefinitionIndex()) {
+			case WEAPON_KNIFE_KARAMBIT:
+				*viewmodel->GetModelIndex() = modelinfo->GetModelIndex("models/weapons/v_knife_karam.mdl"); break;
+			case WEAPON_KNIFE_M9_BAYONET:
+				*viewmodel->GetModelIndex() = modelinfo->GetModelIndex("models/weapons/v_knife_m9_bay.mdl"); break;
+		}
+
 		break;
 	}
 
@@ -121,6 +150,7 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 int __attribute__((constructor)) chameleon_init() {
 	/* obtain pointers to game interface classes */
 	clientdll = GetInterface<CHLClient>("./csgo/bin/linux64/client_client.so", CLIENT_DLL_INTERFACE_VERSION);
+	modelinfo = GetInterface<IVModelInfo>("./bin/linux64/engine_client.so", VMODELINFO_CLIENT_INTERFACE_VERSION);
 	engine = GetInterface<IVEngineClient>("./bin/linux64/engine_client.so", VENGINE_CLIENT_INTERFACE_VERSION);
 	entitylist = GetInterface<IClientEntityList>("./csgo/bin/linux64/client_client.so", VCLIENTENTITYLIST_INTERFACE_VERSION);
 	
