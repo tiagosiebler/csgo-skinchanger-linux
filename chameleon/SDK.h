@@ -8,6 +8,9 @@
 
 /* network variable offsets */
 #define m_lifeState 0x293
+#define m_iAccountID 0x37A8
+#define m_OriginalOwnerXuidLow 0x39A8
+#define m_OriginalOwnerXuidHigh 0x39AC
 #define m_hMyWeapons 0x3528
 #define m_AttributeManager 0x34C0
 #define m_Item 0x60
@@ -22,10 +25,52 @@
 
 /* generic constants */
 #define LIFE_ALIVE 0
+#define MAX_PLAYER_NAME_LENGTH 32
+#define SIGNED_GUID_LEN 32
 
 /* function prototypes */
 typedef void* (*CreateInterfaceFn) (const char*, int*);
 typedef void (*FrameStageNotifyFn) (void*, int);
+
+/* game structures */
+typedef struct player_info_s {
+	// 64-bit steamid
+	int64_t __pad0;
+	union {
+		int64_t xuid;
+		struct {
+			int xuidlow;
+			int xuidhigh;
+		};
+	};
+
+	// scoreboard information
+	char name[MAX_PLAYER_NAME_LENGTH + 96];
+
+	// local server user ID, unique while server is running
+	int userid;
+
+	// global unique player identifer
+	char guid[SIGNED_GUID_LEN + 1];
+
+	// friends identification number
+	unsigned int friendsid;
+
+	// friends name
+	char friendsname[MAX_PLAYER_NAME_LENGTH + 96];
+
+	// true, if player is a bot controlled by game.dll
+	bool fakeplayer;
+
+	// true if player is the HLTV proxy
+	bool ishltv;
+
+	// custom files CRC for this player
+	unsigned int customfiles[4];
+
+	// this counter increases each time the server downloaded a new file
+	unsigned char filesdownloaded;
+} player_info_t;
 
 /* game enumerated types */
 enum ClientFrameStage_t: int {
@@ -130,6 +175,18 @@ class C_BasePlayer {
 
 class C_BaseAttributableItem {
 	public:
+		int* GetAccountID() {
+			return (int*)((uintptr_t)this + m_iAccountID);
+		}
+
+		int* GetOriginalOwnerXuidLow() {
+			return (int*)((uintptr_t)this + m_OriginalOwnerXuidLow);
+		}
+
+		int* GetOriginalOwnerXuidHigh() {
+			return (int*)((uintptr_t)this + m_OriginalOwnerXuidHigh);
+		}
+
 		int* GetItemDefinitionIndex() {
 			return (int*)((uintptr_t)this + m_AttributeManager + m_Item + m_iItemDefinitionIndex);
 		}
@@ -168,6 +225,10 @@ class CHLClient {};
 
 class IVEngineClient {
 	public:
+		bool GetPlayerInfo(int Index, player_info_t* PlayerInfo) {
+			return GetVirtualFunction<bool(*)(void*, int, player_info_t*)>(this, 8)(this, Index, PlayerInfo);
+		}
+
 		int GetLocalPlayer() {
 			return GetVirtualFunction<int(*)(void*)>(this, 12)(this);
 		}
