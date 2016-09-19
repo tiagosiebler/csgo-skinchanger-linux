@@ -40,9 +40,16 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 	/* perform replacements during postdataupdate */
 	while (stage == ClientFrameStage_t::FRAME_NET_UPDATE_POSTDATAUPDATE_START) {
 		/* get our player entity */
-		C_BasePlayer* localplayer = reinterpret_cast<C_BasePlayer*>(entitylist->GetClientEntity(engine->GetLocalPlayer()));
+		int localplayer_idx = engine->GetLocalPlayer();
+		C_BasePlayer* localplayer = reinterpret_cast<C_BasePlayer*>(entitylist->GetClientEntity(localplayer_idx));
 
 		if (!localplayer || localplayer->GetLifeState() != LIFE_ALIVE)
+			break;
+
+		/* get information about our player */
+		player_info_t localplayer_info;
+		
+		if (!engine->GetPlayerInfo(localplayer_idx, &localplayer_info))
 			break;
 
 		/* get a list of weapon we're holding */
@@ -93,6 +100,11 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 
 			/* remove all wear */
 			*weapon->GetFallbackWear() = 0.f;
+
+			/* use stattrak on everything */
+			*weapon->GetEntityQuality() = 9;
+			*weapon->GetFallbackStatTrak() = 133337;
+			*weapon->GetAccountID() = localplayer_info.xuidlow;
 
 			/* force our fallback values to be used */
 			*weapon->GetItemIDHigh() = -1;
