@@ -5,10 +5,14 @@
 #define CLIENT_DLL_INTERFACE_VERSION "VClient017"
 #define VENGINE_CLIENT_INTERFACE_VERSION "VEngineClient014"
 #define VCLIENTENTITYLIST_INTERFACE_VERSION	"VClientEntityList003"
+#define VMODELINFO_CLIENT_INTERFACE_VERSION "VModelInfoClient004"
 
 /* network variable offsets */
 #define m_lifeState 0x293
+#define m_nModelIndex 0x28C
 #define m_iAccountID 0x37A8
+#define m_hViewModel 0x3AD4
+#define m_hWeapon 0x3060
 #define m_OriginalOwnerXuidLow 0x39A8
 #define m_OriginalOwnerXuidHigh 0x39AC
 #define m_hMyWeapons 0x3528
@@ -162,7 +166,16 @@ template <typename Fn> inline Fn GetVirtualFunction(void* baseclass, size_t inde
 }
 
 /* generic game classes */
-class C_BasePlayer {
+class IClientEntity {};
+
+class C_BaseEntity: public IClientEntity {
+	public:
+		int* GetModelIndex() {
+			return (int*)((uintptr_t)this + m_nModelIndex);
+		}
+};
+
+class C_BasePlayer: public C_BaseEntity {
 	public:
 		unsigned char GetLifeState() {
 			return *(unsigned char*)((uintptr_t)this + m_lifeState);
@@ -171,9 +184,13 @@ class C_BasePlayer {
 		int* GetWeapons() {
 			return (int*)((uintptr_t)this + m_hMyWeapons);
 		}
+
+		int GetViewModel() {
+			return *(int*)((uintptr_t)this + m_hViewModel);
+		}
 };
 
-class C_BaseAttributableItem {
+class C_BaseAttributableItem: public C_BaseEntity {
 	public:
 		int* GetAccountID() {
 			return (int*)((uintptr_t)this + m_iAccountID);
@@ -220,6 +237,15 @@ class C_BaseAttributableItem {
 		}
 };
 
+class C_BaseCombatWeapon: public C_BaseAttributableItem {};
+
+class C_BaseViewModel: public C_BaseEntity {
+	public:
+		int GetWeapon() {
+			return *(int*)((uintptr_t)this + m_hWeapon);
+		}
+};
+
 /* game interface classes */
 class CHLClient {};
 
@@ -238,5 +264,12 @@ class IClientEntityList {
 	public:
 		void* GetClientEntity(int index) {
 			return GetVirtualFunction<void*(*)(void*, int)>(this, 3)(this, index);
+		}
+};
+
+class IVModelInfo {
+	public:
+		int GetModelIndex(const char* Filename) {
+			return GetVirtualFunction<int(*)(void*, const char*)>(this, 3)(this, Filename);
 		}
 };
