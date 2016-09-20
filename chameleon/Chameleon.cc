@@ -29,9 +29,11 @@ CHLClient* clientdll = nullptr;
 IVModelInfo* modelinfo = nullptr;
 IVEngineClient* engine = nullptr;
 IClientEntityList* entitylist = nullptr;
+IGameEventManager2* gameevents = nullptr;
 
 /* virtual table hooks */
 VMTHook* clientdll_hook = nullptr;
+VMTHook* gameevents_hook = nullptr;
 
 /* replacement FrameStageNotify function */
 void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
@@ -143,6 +145,39 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 	return clientdll_hook->GetOriginalFunction<FrameStageNotifyFn>(36)(thisptr, stage);
 }
 
+/* replacement FireEventClientSide function */
+bool hkFireEventClientSide(void* thisptr, IGameEvent* event) {
+	while (event) {
+		/* only make changes to player_death events */
+		if (!strcmp(event->GetName(), "player_death")) {
+			/* continue if we were the attacker */
+			int attacker_uid = event->GetInt("attacker");
+
+			if (!attacker_uid)
+				break;
+
+			if (engine->GetPlayerForUserID(attacker_uid) != engine->GetLocalPlayer())
+				return false;
+
+			/* check the weapon id and perform replacements */
+			const char* weapon = event->GetString("weapon");
+
+			if (!strcmp(weapon, "knife_default_ct")) {
+				/* Knife (CT) -> Karambit */
+				event->SetString("weapon", "knife_karambit");
+			} else if (!strcmp(weapon, "knife_t")) {
+				/* Knife (T) -> M9 Bayonet */
+				event->SetString("weapon", "knife_m9_bayonet");
+			}
+		}
+
+		break;
+	}
+	
+	/* call original function after we've made our changes */
+	return gameevents_hook->GetOriginalFunction<FireEventClientSideFn>(9)(thisptr, event);
+};
+
 /* called when the library is loading */
 int __attribute__((constructor)) chameleon_init() {
 	/* obtain pointers to game interface classes */
@@ -150,15 +185,21 @@ int __attribute__((constructor)) chameleon_init() {
 	modelinfo = GetInterface<IVModelInfo>("./bin/linux64/engine_client.so", VMODELINFO_CLIENT_INTERFACE_VERSION);
 	engine = GetInterface<IVEngineClient>("./bin/linux64/engine_client.so", VENGINE_CLIENT_INTERFACE_VERSION);
 	entitylist = GetInterface<IClientEntityList>("./csgo/bin/linux64/client_client.so", VCLIENTENTITYLIST_INTERFACE_VERSION);
+	gameevents = GetInterface<IGameEventManager2>("./bin/linux64/engine_client.so", INTERFACEVERSION_GAMEEVENTSMANAGER2);
 	
 	/* hook CHLClient::FrameStageNotify */
 	clientdll_hook = new VMTHook(clientdll);
 	clientdll_hook->HookFunction((void*)hkFrameStageNotify, 36);
 
+	/* hook IGameEventManager2::FireEventClientSide */
+	gameevents_hook = new VMTHook(gameevents);
+	gameevents_hook->HookFunction((void*)hkFireEventClientSide, 9);
+
 	return 0;
 }
 
 void __attribute__((destructor)) chameleon_shutdown() {
-	/* restore CHLClient virtual table to normal */
+	/* restore virtual tables to normal */
 	delete clientdll_hook;
+	delete gameevents_hook;
 }

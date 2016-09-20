@@ -6,6 +6,7 @@
 #define VENGINE_CLIENT_INTERFACE_VERSION "VEngineClient014"
 #define VCLIENTENTITYLIST_INTERFACE_VERSION	"VClientEntityList003"
 #define VMODELINFO_CLIENT_INTERFACE_VERSION "VModelInfoClient004"
+#define INTERFACEVERSION_GAMEEVENTSMANAGER2 "GAMEEVENTSMANAGER002"
 
 /* network variable offsets */
 #define m_lifeState 0x293
@@ -30,8 +31,12 @@
 #define MAX_PLAYER_NAME_LENGTH 32
 #define SIGNED_GUID_LEN 32
 
+/* forward declarations */
+class IGameEvent;
+
 /* function prototypes */
 typedef void* (*CreateInterfaceFn) (const char*, int*);
+typedef bool (*FireEventClientSideFn) (void*, IGameEvent*);
 typedef void (*FrameStageNotifyFn) (void*, int);
 
 /* game structures */
@@ -238,11 +243,35 @@ class C_BaseViewModel: public C_BaseEntity {
 
 /* game interface classes */
 class CHLClient {};
+class IGameEventManager2 {};
+
+class IGameEvent {
+	public:
+		const char* GetName() {
+			return GetVirtualFunction<const char*(*)(void*)>(this, 2)(this);
+		}
+
+		int GetInt(const char* Key, int Default = 0) {
+			return GetVirtualFunction<int(*)(void*, const char*, int)>(this, 7)(this, Key, Default);
+		}
+
+		const char* GetString(const char* Key) {
+			return GetVirtualFunction<const char*(*)(void*, const char*, int)>(this, 10)(this, Key, 0);
+		}
+
+		void SetString(const char* Key, const char* Value) {
+			return GetVirtualFunction<void(*)(void*, const char*, const char*)>(this, 17)(this, Key, Value);
+		}
+};
 
 class IVEngineClient {
 	public:
 		bool GetPlayerInfo(int Index, player_info_t* PlayerInfo) {
 			return GetVirtualFunction<bool(*)(void*, int, player_info_t*)>(this, 8)(this, Index, PlayerInfo);
+		}
+
+		int GetPlayerForUserID(int UserID) {
+			return GetVirtualFunction<int(*)(void*, int)>(this, 9)(this, UserID);
 		}
 
 		int GetLocalPlayer() {
