@@ -157,7 +157,7 @@ bool hkFireEventClientSide(void* thisptr, IGameEvent* event) {
 				break;
 
 			if (engine->GetPlayerForUserID(attacker_uid) != engine->GetLocalPlayer())
-				return false;
+				break;
 
 			/* check the weapon id and perform replacements */
 			const char* weapon = event->GetString("weapon");
