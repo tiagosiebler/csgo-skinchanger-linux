@@ -13,8 +13,6 @@
 #define m_iAccountID 0x37A8
 #define m_hViewModel 0x3AD4
 #define m_hWeapon 0x3060
-#define m_OriginalOwnerXuidLow 0x39A8
-#define m_OriginalOwnerXuidHigh 0x39AC
 #define m_hMyWeapons 0x3528
 #define m_AttributeManager 0x34C0
 #define m_Item 0x60
@@ -194,14 +192,6 @@ class C_BaseAttributableItem: public C_BaseEntity {
 	public:
 		int* GetAccountID() {
 			return (int*)((uintptr_t)this + m_iAccountID);
-		}
-
-		int* GetOriginalOwnerXuidLow() {
-			return (int*)((uintptr_t)this + m_OriginalOwnerXuidLow);
-		}
-
-		int* GetOriginalOwnerXuidHigh() {
-			return (int*)((uintptr_t)this + m_OriginalOwnerXuidHigh);
 		}
 
 		int* GetItemDefinitionIndex() {
