@@ -22,6 +22,7 @@
 #include <memory.h>
 
 #include "SDK.h"
+#include "vmthook/vmthook.h"
 
 /* game interface pointers */
 CHLClient* clientdll = nullptr;
@@ -29,12 +30,8 @@ IVModelInfo* modelinfo = nullptr;
 IVEngineClient* engine = nullptr;
 IClientEntityList* entitylist = nullptr;
 
-/* CHLClient virtual table pointers */
-uintptr_t** client_vmt = nullptr;
-uintptr_t* original_client_vmt = nullptr;
-
-/* original FrameStageNotify function */
-FrameStageNotifyFn oFrameStageNotify = 0;
+/* virtual table hooks */
+VMTHook* clientdll_hook = nullptr;
 
 /* replacement FrameStageNotify function */
 void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
@@ -143,7 +140,7 @@ void hkFrameStageNotify(void* thisptr, ClientFrameStage_t stage) {
 	}
 
 	/* call original function after we've made our changes */
-	return oFrameStageNotify(thisptr, stage);
+	return clientdll_hook->GetOriginalFunction<FrameStageNotifyFn>(36)(thisptr, stage);
 }
 
 /* called when the library is loading */
@@ -154,36 +151,14 @@ int __attribute__((constructor)) chameleon_init() {
 	engine = GetInterface<IVEngineClient>("./bin/linux64/engine_client.so", VENGINE_CLIENT_INTERFACE_VERSION);
 	entitylist = GetInterface<IClientEntityList>("./csgo/bin/linux64/client_client.so", VCLIENTENTITYLIST_INTERFACE_VERSION);
 	
-	/* get CHLClient virtual function table */
-	client_vmt = reinterpret_cast<uintptr_t**>(clientdll);
-
-	/* create backup of the original table */
-	original_client_vmt = *client_vmt;
-
-	size_t total_functions = 0;
-
-	while (reinterpret_cast<uintptr_t*>(*client_vmt)[total_functions])
-		total_functions++;
-
-	/* create replacement virtual table */
-	uintptr_t* new_client_vmt = new uintptr_t[total_functions];
-
-	/* copy original table contents into new table */
-	memcpy(new_client_vmt, original_client_vmt, (sizeof(uintptr_t) * total_functions));
-
-	/* store original function in oFrameStageNotify variable */
-	oFrameStageNotify = reinterpret_cast<FrameStageNotifyFn>(original_client_vmt[36]);
-
-	/* overwrite the FrameStageNotify function pointer with our hook function */
-	new_client_vmt[36] = reinterpret_cast<uintptr_t>(hkFrameStageNotify);
-
-	/* write the new virtual table */
-	*client_vmt = new_client_vmt;
+	/* hook CHLClient::FrameStageNotify */
+	clientdll_hook = new VMTHook(clientdll);
+	clientdll_hook->HookFunction((void*)hkFrameStageNotify, 36);
 
 	return 0;
 }
 
 void __attribute__((destructor)) chameleon_shutdown() {
 	/* restore CHLClient virtual table to normal */
-	*client_vmt = original_client_vmt;
+	delete clientdll_hook;
 }
