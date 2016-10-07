@@ -175,7 +175,7 @@ bool hkFireEventClientSide(void* thisptr, IGameEvent* event) {
 	}
 	
 	/* call original function after we've made our changes */
-	return gameevents_hook->GetOriginalFunction<FireEventClientSideFn>(9)(thisptr, event);
+	return gameevents_hook->GetOriginalFunction<FireEventClientSideFn>(10)(thisptr, event);
 };
 
 /* called when the library is loading */
@@ -193,7 +193,7 @@ int __attribute__((constructor)) chameleon_init() {
 
 	/* hook IGameEventManager2::FireEventClientSide */
 	gameevents_hook = new VMTHook(gameevents);
-	gameevents_hook->HookFunction((void*)hkFireEventClientSide, 9);
+	gameevents_hook->HookFunction((void*)hkFireEventClientSide, 10);
 
 	return 0;
 }

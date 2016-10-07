@@ -11,7 +11,7 @@
 /* network variable offsets */
 #define m_lifeState 0x293
 #define m_nModelIndex 0x28C
-#define m_iAccountID 0x37A8
+#define m_iAccountID 0x288
 #define m_hViewModel 0x3AD4
 #define m_hWeapon 0x3060
 #define m_hMyWeapons 0x3528
@@ -21,10 +21,10 @@
 #define m_iEntityQuality 0x26C
 #define m_iItemIDHigh 0x280
 #define m_szCustomName 0x340
-#define m_nFallbackPaintKit 0x39B0
-#define m_nFallbackSeed 0x39B4
-#define m_flFallbackWear 0x39B8
-#define m_nFallbackStatTrak 0x39BC
+#define m_nFallbackPaintKit 0x39B8
+#define m_nFallbackSeed 0x39BC
+#define m_flFallbackWear 0x39C0
+#define m_nFallbackStatTrak 0x39C4
 
 /* generic constants */
 #define LIFE_ALIVE 0
@@ -196,7 +196,7 @@ class C_BasePlayer: public C_BaseEntity {
 class C_BaseAttributableItem: public C_BaseEntity {
 	public:
 		int* GetAccountID() {
-			return (int*)((uintptr_t)this + m_iAccountID);
+			return (int*)((uintptr_t)this + m_AttributeManager + m_Item + m_iAccountID);
 		}
 
 		int* GetItemDefinitionIndex() {
